@@ -16,7 +16,7 @@ class FileHoster(BaseHTTPRequestHandler):
         super().__init__(request, client_address, server)
 
     @staticmethod
-    def check_dir(folderpath: str, fileSuccess: list) -> int:
+    def check_dir(folderpath: str, fileSuccess: list) -> list:
         fileList = os.listdir(folderpath)
 
         for content in fileList:
