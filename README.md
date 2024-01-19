@@ -8,5 +8,6 @@ pip install PyQt5
 
 ## Usage
 - Run main.py
-- Put the files you want to host in the "Storage" folder
-- Put in the host and port start server
+- Put in the host and port
+- Click the "Select folder" button and select the folder you want to host
+- Run server
