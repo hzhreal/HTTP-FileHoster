@@ -85,7 +85,7 @@ class Window(QMainWindow):
     def initUI(self) -> None:
         # Label imitating a terminal
         self.terminal = QtWidgets.QLabel(self)
-        self.terminal.setText("Server now running...")
+        self.terminal.setText("")
         self.terminal.move(80, 175)
 
         # Start server button
