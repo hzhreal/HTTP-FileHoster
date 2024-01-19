@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QLineEdit
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QLineEdit, QFileDialog
 import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import os
@@ -9,7 +9,7 @@ import datetime
 import time
 import json
 
-DIRECTORYPATH = "Storage"  # where you will put the files you want to host
+DIRECTORY_PATH = ""
 
 class FileHoster(BaseHTTPRequestHandler):
     def __init__(self, request, client_address, server) -> None:
@@ -32,10 +32,11 @@ class FileHoster(BaseHTTPRequestHandler):
         return fileSuccess
 
     def do_GET(self) -> None:
-        folderpath = DIRECTORYPATH
+        global DIRECTORY_PATH
+
         fileSuccess = []
-        files = self.check_dir(folderpath, fileSuccess)
-        print(f"Found {len(files)} files in {folderpath}")
+        files = self.check_dir(DIRECTORY_PATH, fileSuccess)
+        print(f"Found {len(files)} files in {DIRECTORY_PATH}")
 
         if len(files) == 0:
             self.send_response(404)
@@ -54,9 +55,10 @@ class FileHoster(BaseHTTPRequestHandler):
                     for file in files:
                         with open(file, "rb") as f:
                             fileContent = f.read()
-                        zipf.writestr(file, fileContent)
+                        filtered_path = os.path.relpath(file)
+                        zipf.writestr(filtered_path, fileContent)
 
-            except ConnectionAbortedError or ConnectionResetError:
+            except (ConnectionAbortedError, ConnectionResetError):
                 pass
 
     def do_POST(self) -> None:
@@ -97,6 +99,18 @@ class Window(QMainWindow):
         self.bE.clicked.connect(self.on_stop)
         self.bE.move(200, 0)
 
+        # Select folder button
+        self.fSelect = QtWidgets.QPushButton(self)
+        self.fSelect.setText("Select folder")
+        self.fSelect.clicked.connect(self.selectFolder)
+        self.fSelect.move(0, 150)
+
+        # Folder path textbox
+        self.foldertxt = QLineEdit(self)
+        self.foldertxt.move(120, 145)
+        self.foldertxt.resize(100, 35)
+        self.foldertxt.setPlaceholderText("Folder to upload")
+
         # Host textbox
         self.txtHost = QLineEdit(self)
         self.txtHost.move(0, 50)
@@ -110,14 +124,16 @@ class Window(QMainWindow):
         self.txtPort.setPlaceholderText("80")
 
     def on_start(self) -> None:
-        if len(self.txtHost.text()) > 0 and self.txtPort.text().isdigit():
+        global DIRECTORY_PATH
+        if len(self.txtHost.text()) > 0 and self.txtPort.text().isdigit() and os.path.exists(self.foldertxt.text()):
+            DIRECTORY_PATH = self.foldertxt.text()
             host = self.txtHost.text()
             port = int(self.txtPort.text())
 
             self.server_thread = threading.Thread(target=self.start_server, args=(host, port))
             self.server_thread.start()
         else:
-            self.errorMsg("Invalid host or port!")
+            self.errorMsg("Invalid host, port or folderpath!")
     
     def on_stop(self) -> None:
         if self.server:
@@ -145,6 +161,10 @@ class Window(QMainWindow):
     def updateTerminal(self, new_text: str) -> None:
         self.terminal.setText(new_text)
 
+    def selectFolder(self) -> None:
+        folderpath = QtWidgets.QFileDialog.getExistingDirectory(self, "Select the folder you want to host.")
+        self.foldertxt.setText(folderpath)
+
     @staticmethod
     def errorMsg(errorCode: str) -> None:
         # Messagebox for errors
@@ -156,13 +176,6 @@ class Window(QMainWindow):
         msgBox.exec()
 
 if __name__ == "__main__":
-    if not os.path.exists(DIRECTORYPATH):
-        try:
-            os.makedirs(DIRECTORYPATH)
-        except:
-            print(f"Could not create directory {DIRECTORYPATH}. Make sure it exists before running the program.")
-            exit()
-
     app = QApplication(sys.argv)
     win = Window()
     win.show()
